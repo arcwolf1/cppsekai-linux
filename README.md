@@ -1,6 +1,4 @@
-简短版，复制到 GitHub 网页编辑：
 
-```markdown
 # CppSekai Linux
 
 CppSekai 的 Linux 移植版。原版 [BSOD-MEMZ/CppSekai](https://github.com/BSOD-MEMZ/CppSekai) 是 Windows 触屏用的 Project SEKAI 风格 SUS 谱面播放器。
@@ -68,6 +66,4 @@ cppsekai-chartdl --list tell   # CLI 搜索
 ## 许可
 
 AGPL-3.0，继承自上游。
-```
 
-直接粘贴到 GitHub 网页的 README.md 编辑器。
