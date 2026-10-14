@@ -1,0 +1,7 @@
+/home/arcwolf/CppSekai-linux/downloader/CMakeFiles/cppsekai_upstream.dir
+/home/arcwolf/CppSekai-linux/downloader/CMakeFiles/imgui.dir
+/home/arcwolf/CppSekai-linux/downloader/CMakeFiles/cppsekai.dir
+/home/arcwolf/CppSekai-linux/downloader/CMakeFiles/cppsekai-chartdl.dir
+/home/arcwolf/CppSekai-linux/downloader/CMakeFiles/cppsekai-chartdl-gtk.dir
+/home/arcwolf/CppSekai-linux/downloader/CMakeFiles/edit_cache.dir
+/home/arcwolf/CppSekai-linux/downloader/CMakeFiles/rebuild_cache.dir

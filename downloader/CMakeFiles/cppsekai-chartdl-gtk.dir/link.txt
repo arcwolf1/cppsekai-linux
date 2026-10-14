@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/cppsekai-chartdl-gtk.dir/link.d "CMakeFiles/cppsekai-chartdl-gtk.dir/chartdl_gtk.cpp.o" -o cppsekai-chartdl-gtk  -lcurl -lgtk-3 -lgdk-3 -lpangocairo-1.0 -lcairo-gobject -lgdk_pixbuf-2.0 -latk-1.0 -lpango-1.0 -lcairo -lharfbuzz -lgio-2.0 -lgobject-2.0 -lglib-2.0 -lz

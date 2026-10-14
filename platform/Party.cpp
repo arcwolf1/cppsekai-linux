@@ -25,7 +25,7 @@ constexpr LONG kStaleMs = 6000;
 // v2: added trackEndMs (the host's run length). The layout is part of the
 // protocol, so an old build simply opens a different mapping instead of reading
 // these fields at the wrong offsets.
-constexpr wchar_t kMappingName[] = L"Local\\CppSekai.Party.v2";
+constexpr wchar_t kMappingName[] = L"Local/CppSekai.Party.v2";
 
 struct SharedSeat
 {

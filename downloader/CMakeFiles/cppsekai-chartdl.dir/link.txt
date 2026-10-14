@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/cppsekai-chartdl.dir/link.d "CMakeFiles/cppsekai-chartdl.dir/chartdl_linux.cpp.o" -o cppsekai-chartdl  -lcurl

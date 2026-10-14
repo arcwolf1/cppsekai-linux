@@ -3,6 +3,9 @@
 // openingPlayfieldVisibility() / loadIntroFonts() from
 // core/native/src/mmw_overlay_player.cpp (sekai-mmw-preview-web, AGPL-3.0).
 #include "Intro.hpp"
+#ifdef __linux__
+#include "platform/FontConfig.hpp"
+#endif
 
 #include "Hud.hpp" // lifePauseRect - the skip key lines up with the pause key
 #include "Ui.hpp"  // ui::anim - the skip button's hover / press easing
@@ -243,7 +246,7 @@ namespace
     std::string findFontFile(const std::wstring& face, int matchMode)
     {
         HKEY key = nullptr;
-        if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts",
+        if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE/Microsoft/Windows NT/CurrentVersion/Fonts",
                 0, KEY_READ, &key)
             != ERROR_SUCCESS) {
             return {};
@@ -300,7 +303,7 @@ namespace
                 continue;
             }
             // The Fonts key stores either a bare file name ("msyh.ttc") or a full
-            // path ("C:\\Windows\\Fonts\\msyh.ttc", what Win7 tends to write for
+            // path ("C:/Windows/Fonts/msyh.ttc", what Win7 tends to write for
             // fonts that arrived with an update / a language pack). Gluing "\Fonts\"
             // in front of the latter produced a path that cannot exist - the font
             // was then silently skipped, which is how a machine with perfectly good
@@ -309,7 +312,7 @@ namespace
             GetWindowsDirectoryW(windowsDir, MAX_PATH);
             result = (file.size() > 1 && file[1] == L':')
                 ? wideToUtf8(file)
-                : wideToUtf8(windowsDir) + "\\Fonts\\" + wideToUtf8(file);
+                : wideToUtf8(windowsDir) + "/Fonts/" + wideToUtf8(file);
         }
         RegCloseKey(key);
         return result;
@@ -386,7 +389,7 @@ namespace
         {
             wchar_t windowsDir[MAX_PATH]{};
             GetWindowsDirectoryW(windowsDir, MAX_PATH);
-            const std::wstring root = std::wstring(windowsDir) + L"\\Fonts\\";
+            const std::wstring root = std::wstring(windowsDir) + L"/Fonts/";
             for (const wchar_t* file : {
                      L"msyh.ttc",     // Microsoft YaHei (Win7+)
                      L"msyh.ttf",     // Vista, or XP with the ClearType pack
@@ -423,7 +426,7 @@ void loadIntroFonts()
 #ifdef _WIN32
         wchar_t windowsDir[MAX_PATH]{};
         GetWindowsDirectoryW(windowsDir, MAX_PATH);
-        const std::string fontRoot = wideToUtf8(windowsDir) + "\\Fonts\\";
+        const std::string fontRoot = wideToUtf8(windowsDir) + "/Fonts/";
         auto openFont = [&](const char* fileName, ImFont*& outFont, const char* label,
                             const ImWchar* ranges) {
             if (outFont != nullptr) {
@@ -478,6 +481,46 @@ void loadIntroFonts()
             gCondFont = gBodyFont;
         }
     };
+
+#ifdef __linux__
+    // Linux: 用 fontconfig 查系统 CJK 字体（不同发行版装的字体不一样，
+    // 硬编码路径不可靠）。找到后按 Android 那套加载：
+    // 先 GetGlyphRangesJapanese（日文歌名），再 MergeMode 合并简体中文。
+    {
+        const std::string path = platform::findCjkFont();
+        if (!path.empty()) {
+            const float kFontSize = 42.0f;
+            ImFontConfig config;
+            config.OversampleH = 2;
+            config.OversampleV = 2;
+            std::snprintf(config.Name, sizeof(config.Name), "fontconfig");
+
+            ImFont* font = io.Fonts->AddFontFromFileTTF(path.c_str(), kFontSize, &config,
+                io.Fonts->GetGlyphRangesJapanese());
+            if (font != nullptr) {
+                ImFontConfig merge;
+                merge.MergeMode = true;
+                merge.OversampleH = 2;
+                merge.OversampleV = 2;
+                io.Fonts->AddFontFromFileTTF(path.c_str(), kFontSize, &merge,
+                    io.Fonts->GetGlyphRangesChineseSimplifiedCommon());
+
+                gBodyFont = font;
+                gTitleFont = font;
+                gDiffFont = font;
+                gBodyFontPath = path;
+                addResultFonts();
+                io.Fonts->Build();
+                std::printf("[intro] system font @%.0fpx loaded via fontconfig: %s\n",
+                    kFontSize, path.c_str());
+                return;
+            }
+            std::printf("[intro] fontconfig font rejected by rasterizer: %s\n", path.c_str());
+        } else {
+            std::printf("[intro] fontconfig: no CJK font found\n");
+        }
+    }
+#endif
 
 #ifdef _WIN32
     // The system UI font, and nothing else. 2026-09-19: assets/mmw/font was

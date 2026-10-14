@@ -113,7 +113,7 @@ bool TapEffect::load(platform::Renderer& renderer, const std::string& fxDir, std
 
     bool anyLoaded = false;
     for (const Entry& entry : entries) {
-        const std::string path = fxDir + "\\" + entry.file;
+        const std::string path = fxDir + "/" + entry.file;
         std::string error;
         const GLuint id = renderer.loadUiTexture(path, error);
         if (id == 0) {
@@ -122,7 +122,7 @@ bool TapEffect::load(platform::Renderer& renderer, const std::string& fxDir, std
             *entry.out = 0;
             continue;
         }
-        *entry.out = static_cast<ImTextureID>(id);
+        *entry.out = reinterpret_cast<ImTextureID>(static_cast<std::uintptr_t>(id));
         anyLoaded = true;
     }
     return anyLoaded;
@@ -262,7 +262,7 @@ void TapEffect::drawShard(ImDrawList* drawList, const Instance& in, const Piece&
         points[i].y = cy + local[i].x * s + local[i].y * c + offset;
     }
     const ImU32 tint = piece.outline ? kOutlineTint : kFillTint;
-    drawList->AddImageQuad(tex, points[0], points[1], points[2], points[3], uv[0], uv[1], uv[2],
+    drawList->AddImageQuad(const_cast<void*>(static_cast<const void*>(tex)), points[0], points[1], points[2], points[3], uv[0], uv[1], uv[2],
         uv[3], shadow ? fadeShadow(alpha) : withAlpha(tint, alpha));
 }
 

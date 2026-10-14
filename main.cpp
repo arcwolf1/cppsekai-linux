@@ -4,6 +4,20 @@
 // We provide our own console main(); tell SDL not to redefine it as SDL_main.
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
+// Linux: SDL_syswm.h 会拉入 X11/Xlib.h，那里把 None 定义成 0L，
+// 和 game::Judge::None 冲突。先主动 include Xlib.h 再 undef None。
+#ifdef __linux__
+#include <X11/Xlib.h>
+#undef None
+#include "platform/win_compat_linux.h"
+
+// Linux: IME 相关是 Windows 专属，Linux 版本用 SDL 自带的 IME 支持。
+struct ImGuiContext;
+struct ImGuiViewport;
+struct ImGuiPlatformImeData;
+inline void setImeRectOnChange(ImGuiContext*, ImGuiViewport*, ImGuiPlatformImeData*) {}
+inline void switchImeToAscii(SDL_Window*) {}
+#endif
 #include <SDL_syswm.h>
 #include <GL/gl.h>
 
@@ -423,7 +437,7 @@ namespace
             return wideToUtf8(buffer);
         }
         DWORD size = sizeof(buffer);
-        if (RegGetValueW(HKEY_CURRENT_USER, L"Control Panel\\Desktop", L"WallPaper", RRF_RT_REG_SZ, nullptr,
+        if (RegGetValueW(HKEY_CURRENT_USER, L"Control Panel/Desktop", L"WallPaper", RRF_RT_REG_SZ, nullptr,
                 buffer, &size) == ERROR_SUCCESS
             && GetFileAttributesW(buffer) != INVALID_FILE_ATTRIBUTES) {
             return wideToUtf8(buffer);
@@ -431,7 +445,7 @@ namespace
         const char* appData = std::getenv("APPDATA");
         if (appData != nullptr) {
             const std::string candidate =
-                std::string(appData) + "\\Microsoft\\Windows\\Themes\\TranscodedWallpaper";
+                std::string(appData) + "/Microsoft/Windows/Themes/TranscodedWallpaper";
             if (GetFileAttributesA(candidate.c_str()) != INVALID_FILE_ATTRIBUTES) {
                 return candidate;
             }
@@ -970,7 +984,7 @@ void logCrashAddress(FILE* out, const char* tag, const void* address)
             static_cast<LPCSTR>(address), &module)) {
         if (GetModuleFileNameA(module, modulePath, MAX_PATH) != 0) {
             for (const char* p = modulePath; *p != '\0'; ++p) {
-                if (*p == '\\' || *p == '/') {
+                if (*p == '/' || *p == '/') {
                     base = p + 1;
                 }
             }
@@ -1719,11 +1733,49 @@ int main(int argc, char** argv)
     // window we are about to create. Command-line flags win over saved values.
     std::string baseDir;
     {
-        char* basePath = SDL_GetBasePath();
-        if (basePath != nullptr) {
-            baseDir = basePath;
-            SDL_free(basePath);
+        // 资源搜索顺序（先找 musics.json 验证有效）：
+        //   1. 环境变量 CPSEKAI_DATA_DIR（调试用）
+        //   2. /usr/share/cppsekai/（系统安装，AUR 装到这里）
+        //   3. ~/.local/share/cppsekai/（用户安装）
+        //   4. SDL_GetBasePath()（开发时，二进制同目录）
+        // 每层都要求 musics.json 存在，否则跳到下一层。
+        auto hasData = [](const std::string& dir) {
+            std::error_code ec;
+            return std::filesystem::is_regular_file(dir + "musics.json", ec);
+        };
+
+        if (const char* env = std::getenv("CPSEKAI_DATA_DIR"); env != nullptr && *env != '\0') {
+            baseDir = std::string(env);
+            if (!baseDir.empty() && baseDir.back() != '/') baseDir += '/';
         }
+
+        if (baseDir.empty() || !hasData(baseDir)) {
+            const char* systemPaths[] = {
+                "/usr/share/cppsekai/",
+                "/usr/local/share/cppsekai/",
+            };
+            for (const char* p : systemPaths) {
+                if (hasData(p)) { baseDir = p; break; }
+            }
+        }
+
+        if (baseDir.empty() || !hasData(baseDir)) {
+            if (const char* home = std::getenv("HOME"); home != nullptr) {
+                std::string userPath = std::string(home) + "/.local/share/cppsekai/";
+                if (hasData(userPath)) baseDir = userPath;
+            }
+        }
+
+        if (baseDir.empty() || !hasData(baseDir)) {
+            char* basePath = SDL_GetBasePath();
+            if (basePath != nullptr) {
+                baseDir = basePath;
+                SDL_free(basePath);
+            }
+        }
+
+        std::printf("[boot] data dir: %s\n", baseDir.c_str());
+        std::fflush(stdout);
     }
     // Profiles (multi-user): one data file per user, listed in an index next to
     // them. On the very first run loadProfiles() imports the old single
@@ -1779,7 +1831,7 @@ int main(int argc, char** argv)
             return std::wstring(text.begin(), text.end());
         };
         auto tryLockProfile = [&](const std::string& id) -> HANDLE {
-            const std::wstring name = L"Local\\CppSekai.Profile." + toWideAscii(id);
+            const std::wstring name = L"Local/CppSekai.Profile." + toWideAscii(id);
             HANDLE lock = CreateMutexW(nullptr, FALSE, name.c_str());
             if (lock == nullptr) {
                 return nullptr;
@@ -1791,7 +1843,7 @@ int main(int argc, char** argv)
             return lock;
         };
 
-        singleInstanceLock = CreateMutexW(nullptr, FALSE, L"Local\\CppSekai.SingleInstance");
+        singleInstanceLock = CreateMutexW(nullptr, FALSE, L"Local/CppSekai.SingleInstance");
         const bool alreadyRunning = singleInstanceLock != nullptr
             && GetLastError() == ERROR_ALREADY_EXISTS;
         int instanceMode = instanceModeGiven ? instanceModeOverride : userSettings.instanceMode;
@@ -2185,7 +2237,7 @@ int main(int argc, char** argv)
         int iconH = 0;
         int iconChannels = 0;
         const std::string iconCandidates[] = {
-            baseDir + "icon.png", baseDir + "..\\icon.png", std::string("icon.png")};
+            baseDir + "icon.png", baseDir + "../icon.png", std::string("icon.png")};
         for (const std::string& candidate : iconCandidates) {
             stbi_uc* pixels = stbi_load(candidate.c_str(), &iconW, &iconH, &iconChannels, 4);
             if (pixels == nullptr) {
@@ -2358,7 +2410,7 @@ int main(int argc, char** argv)
     GLuint splashImg = 0;
     int splashImgW = 0, splashImgH = 0;
     if (splashStyle == 0) {
-        splashImg = renderer.loadUiTexture(baseDir + "assets\\splashscreen.png", error);
+        splashImg = renderer.loadUiTexture(baseDir + "assets/splashscreen.png", error);
         if (splashImg != 0) {
             glBindTexture(GL_TEXTURE_2D, splashImg);
             glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &splashImgW);
@@ -2426,12 +2478,12 @@ int main(int argc, char** argv)
     drawSplash(0.05f, "initializing");
 
     // Resolve bundled assets relative to the executable, not the CWD.
-    const std::string assetDir = baseDir + "assets\\mmw";
-    const std::string overlayDir = baseDir + "assets\\mmw\\overlay";
-    const std::string seDir = baseDir + "assets\\se";
+    const std::string assetDir = baseDir + "assets/mmw";
+    const std::string overlayDir = baseDir + "assets/mmw/overlay";
+    const std::string seDir = baseDir + "assets/se";
     // The result screen loops the game's own result track (see game/Result.cpp).
-    const std::string resultBgmPath = baseDir + "assets\\ost\\BGM_LIVE_RESULT_2.mp3";
-    const std::string fxDir = baseDir + "assets\\fx";
+    const std::string resultBgmPath = baseDir + "assets/ost/BGM_LIVE_RESULT_2.mp3";
+    const std::string fxDir = baseDir + "assets/fx";
     // Where the charts live: next to the exe when packaged, otherwise the
     // project's charts/ one level up (the usual build/ layout).
     std::vector<std::string> chartCandidates;
@@ -2439,7 +2491,7 @@ int main(int argc, char** argv)
         chartCandidates.push_back(chartsDir);
     } else {
         chartCandidates.push_back(baseDir + "charts");
-        chartCandidates.push_back(baseDir + "..\\charts");
+        chartCandidates.push_back(baseDir + "../charts");
         chartCandidates.push_back(std::string("charts"));
     }
 
@@ -2508,7 +2560,7 @@ int main(int argc, char** argv)
     // Ring behind the resume-countdown numbers (same tap_ring.png). Failure
     // is not fatal - the numbers draw without the halo.
     ImTextureID countdownRing = 0;
-    if (const GLuint ringId = renderer.loadUiTexture(fxDir + "\\tap_ring.png", error); ringId != 0) {
+    if (const GLuint ringId = renderer.loadUiTexture(fxDir + "/tap_ring.png", error); ringId != 0) {
         countdownRing = reinterpret_cast<ImTextureID>(static_cast<std::uintptr_t>(ringId));
     }
     error.clear();
@@ -2619,13 +2671,13 @@ int main(int argc, char** argv)
     }
 
     // Play results (cleared / full combo) + song select UI assets.
-    // setSelectAssetDir expects the assets root; SongSelect appends "select\\".
+    // setSelectAssetDir expects the assets root; SongSelect appends "select/".
     // `scores` was already loaded from userdata.json near the top of main().
     game::setSelectAssetDir(baseDir + "assets");
 
     // Player level chip glyph (assets/select/level.png). Missing is harmless:
     // the chip falls back to a drawn note.
-    if (const GLuint levelIcon = renderer.loadUiTexture(baseDir + "assets\\select\\level.png", error);
+    if (const GLuint levelIcon = renderer.loadUiTexture(baseDir + "assets/select/level.png", error);
         levelIcon != 0) {
         ui::setLevelIconTexture(reinterpret_cast<ImTextureID>(static_cast<std::uintptr_t>(levelIcon)));
     } else {
@@ -2694,7 +2746,7 @@ int main(int argc, char** argv)
     // scores ship with an empty "#PLAYLEVEL", so without this the song select
     // can only show "-" on every difficulty pad.
     for (const std::string& candidate :
-        {baseDir + "music-levels.json", baseDir + "..\\music-levels.json",
+        {baseDir + "music-levels.json", baseDir + "../music-levels.json",
             std::string("music-levels.json")}) {
         std::ifstream probe(candidate, std::ios::binary);
         if (probe.good()) {
@@ -2709,7 +2761,7 @@ int main(int argc, char** argv)
     // empty (unipjsk writes none, so the list would read "0018 master").
     // Optional - a missing file just means title-based sorting.
     for (const std::string& candidate :
-        {baseDir + "musics.json", baseDir + "..\\musics.json", std::string("musics.json")}) {
+        {baseDir + "musics.json", baseDir + "../musics.json", std::string("musics.json")}) {
         std::ifstream probe(candidate, std::ios::binary);
         if (probe.good()) {
             probe.close();
@@ -2723,7 +2775,7 @@ int main(int argc, char** argv)
     // version's mp3 sitting next to the chart; without the table there is no
     // switcher, everything else works the same.
     for (const std::string& candidate :
-        {baseDir + "music-vocals.json", baseDir + "..\\music-vocals.json",
+        {baseDir + "music-vocals.json", baseDir + "../music-vocals.json",
             std::string("music-vocals.json")}) {
         std::ifstream probe(candidate, std::ios::binary);
         if (probe.good()) {
@@ -2738,7 +2790,7 @@ int main(int argc, char** argv)
     // .workbuddy/tools/fetch_music_aliases.py. Also optional: it only widens
     // what the search box accepts.
     for (const std::string& candidate :
-        {baseDir + "music-aliases.json", baseDir + "..\\music-aliases.json",
+        {baseDir + "music-aliases.json", baseDir + "../music-aliases.json",
             std::string("music-aliases.json")}) {
         std::ifstream probe(candidate, std::ios::binary);
         if (probe.good()) {
@@ -2804,7 +2856,7 @@ int main(int argc, char** argv)
     // "play this now" hand-off (--select-id) and the empty-state hint use.
     // ------------------------------------------------------------------
     auto chartFileKey = [](const std::string& path) {
-        const size_t cut = path.find_last_of("\\/");
+        const size_t cut = path.find_last_of("//");
         return cut == std::string::npos ? path : path.substr(cut + 1);
     };
     auto scanAllChartDirs = [&]() {
@@ -3195,8 +3247,8 @@ int main(int argc, char** argv)
             // build/ and the downloader right there with it.
             const std::string candidates[] = {
                 baseDir + "chartdl.exe",
-                baseDir + "build\\chartdl.exe",
-                baseDir + "..\\build\\chartdl.exe",
+                baseDir + "build/chartdl.exe",
+                baseDir + "../build/chartdl.exe",
             };
             for (const std::string& candidate : candidates) {
                 std::error_code ec;
@@ -3404,7 +3456,7 @@ int main(int argc, char** argv)
     // File name of a chart path: the room identifies a song by it, because the
     // host's "0374_master.sus" is the same file in every window.
     auto chartFileName = [](const std::string& path) {
-        const std::size_t sep = path.find_last_of("\\/");
+        const std::size_t sep = path.find_last_of("//");
         return sep == std::string::npos ? path : path.substr(sep + 1);
     };
     // Index into `entries` of the locked song's `difficultyIndex` chart
@@ -5286,7 +5338,7 @@ int main(int argc, char** argv)
                             // characters are replaced rather than dropped.
                             std::string who = account.name.empty() ? activeProfileId : account.name;
                             for (char& c : who) {
-                                if (std::strchr("\\/:*?\"<>|", c) != nullptr) {
+                                if (std::strchr("//:*?\"<>|", c) != nullptr) {
                                     c = '_';
                                 }
                             }
@@ -6524,10 +6576,11 @@ int main(int argc, char** argv)
     // （结束所有实例的确认框）要用它，而 lambda 的捕获在定义处就定死了。
     // 真正的赋值在下面窗口过程那一段（SDL_GetWindowWMInfo）。
     HWND gameWindow = nullptr;
+#endif
     // 别的窗口用 结束所有实例 让我们关：收到这个标记之后就不再弹"要退出吗"那张卡。
     // 由窗口过程写（cppsekaiForceQuitMessage），关窗那条路读。
+    // Linux/Android 上恒为 false（没有"结束所有实例"这套 Windows 功能）。
     bool forceQuitRequested = false;
-#endif
     int menuCommand = -1;
     bool menuPauseWanted = false;
     // "菜单正开着（菜单模式）"的镜子。`menuOpen` 是 SubclassState 的成员，而那个结构体

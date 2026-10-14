@@ -7,27 +7,60 @@
 #include <cstdlib>
 #include <cstring>
 
+#ifdef __linux__
+// Linux: 让 gl.h 声明 GL 1.2+ 函数原型，静态链接 libGL 就行，不用动态加载。
+#define GL_GLEXT_PROTOTYPES
+#endif
 #include <GL/gl.h>
 #include <SDL.h>
 
 // Minimal OpenGL 3.3 core loader: functions beyond GL 1.1 are runtime-loaded
 // via SDL_GL_GetProcAddress. glLoadAll() must be called once after the GL
 // context is current.
+#ifdef __linux__
+// Linux: Mesa gl.h + libGL 已提供全部 GL 符号（glActiveTexture / glGenBuffers /
+// glCreateShader 等），不需要运行时加载。只留一个空的 loadAll 让调用点不改。
+namespace gl {
+    inline void loadAll() {}
+}
+#else
 namespace gl
 {
 // GL 1.2+ constants missing from MinGW's gl.h.
+// Linux 的 Mesa gl.h 已经定义过这些常量，加守卫避免重定义。
+#ifndef GL_COMPILE_STATUS
 constexpr unsigned int GL_COMPILE_STATUS = 0x8B81;
+#endif
+#ifndef GL_LINK_STATUS
 constexpr unsigned int GL_LINK_STATUS = 0x8B82;
+#endif
+#ifndef GL_VERTEX_SHADER
 constexpr unsigned int GL_VERTEX_SHADER = 0x8B31;
+#endif
+#ifndef GL_FRAGMENT_SHADER
 constexpr unsigned int GL_FRAGMENT_SHADER = 0x8B30;
+#endif
+#ifndef GL_ARRAY_BUFFER
 constexpr unsigned int GL_ARRAY_BUFFER = 0x8892;
+#endif
+#ifndef GL_DYNAMIC_DRAW
 constexpr unsigned int GL_DYNAMIC_DRAW = 0x88E8;
+#endif
+#ifndef GL_CLAMP_TO_EDGE
 constexpr unsigned int GL_CLAMP_TO_EDGE = 0x812F;
+#endif
+#ifndef GL_TEXTURE0
 constexpr unsigned int GL_TEXTURE0 = 0x84C0;
-// Framebuffer objects (GL 3.0) - used for the fixed-resolution render target.
+#endif
+#ifndef GL_FRAMEBUFFER
 constexpr unsigned int GL_FRAMEBUFFER = 0x8D40;
+#endif
+#ifndef GL_COLOR_ATTACHMENT0
 constexpr unsigned int GL_COLOR_ATTACHMENT0 = 0x8CE0;
+#endif
+#ifndef GL_FRAMEBUFFER_COMPLETE
 constexpr unsigned int GL_FRAMEBUFFER_COMPLETE = 0x8CD5;
+#endif
 // GL_RGBA8 comes from gl.h itself (the internal format of the render target).
 using GLsizeiptr = ptrdiff_t;
 
@@ -108,6 +141,7 @@ inline void loadAll()
     GL_PROC_LIST(GL_PROC_LOAD)
 }
 } // namespace gl
+#endif  // __linux__ 分支结束
 
 using namespace gl;
 

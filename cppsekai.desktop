@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=CppSekai
+Name[zh_CN]=CppSekai 音游
+Comment=Project SEKAI style SUS chart player
+Comment[zh_CN]=Project SEKAI 风格的 SUS 谱面播放器
+Exec=cppsekai
+Icon=cppsekai
+Terminal=false
+Categories=Game;MusicGame;
+Keywords=rhythm;music;seka;sus;
+MimeType=application/x-sus;
+StartupNotify=true

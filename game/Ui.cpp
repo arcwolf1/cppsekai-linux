@@ -2007,7 +2007,7 @@ ImVec4 playerLevelChip(ImDrawList* dl, ImFont* font, ImVec2 anchor, int rank, fl
     // transparent background, so it reads over both the green and the dark pill.
     const float ix = x0 + pad;
     const float iy = y0 + pad;
-    const ImTextureID tex = levelIconTexture();
+    ImTextureID tex = levelIconTexture();
     if (tex != 0) {
         dl->AddImage(tex, ImVec2(ix, iy), ImVec2(ix + icon, iy + icon));
     } else {

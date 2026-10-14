@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/arcwolf/CppSekai-linux/downloader/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

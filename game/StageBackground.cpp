@@ -349,7 +349,7 @@ std::vector<std::uint8_t> buildStageBackground(const std::string& bggenDir, cons
     if (bggenDir.empty() || jacketPath.empty()) {
         return {};
     }
-    const std::string dir = bggenDir.back() == '/' || bggenDir.back() == '\\' ? bggenDir : bggenDir + "/";
+    const std::string dir = bggenDir.back() == '/' || bggenDir.back() == '/' ? bggenDir : bggenDir + "/";
     Image base = loadImage(dir + "base.png");
     Image bottom = loadImage(dir + "bottom.png");
     Image centerCover = loadImage(dir + "center_cover.png");

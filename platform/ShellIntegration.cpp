@@ -238,20 +238,20 @@ bool associateSus(const std::wstring& exePath)
     const std::wstring icon = exePath + L",0";
     // 顺序无所谓，但 ProgID 那几项必须齐 —— 少了 command，Explorer 会拿"打开方式"
     // 去问用户，体验比不关联还差。
-    if (!writeString(HKEY_CURRENT_USER, L"Software\\Classes\\CppSekai.Chart", nullptr, kProgIdLabel)) {
+    if (!writeString(HKEY_CURRENT_USER, L"Software/Classes/CppSekai.Chart", nullptr, kProgIdLabel)) {
         return false;
     }
-    if (!writeString(HKEY_CURRENT_USER, L"Software\\Classes\\CppSekai.Chart\\DefaultIcon", nullptr, icon)) {
+    if (!writeString(HKEY_CURRENT_USER, L"Software/Classes/CppSekai.Chart/DefaultIcon", nullptr, icon)) {
         return false;
     }
-    if (!writeString(HKEY_CURRENT_USER, L"Software\\Classes\\CppSekai.Chart\\shell\\open\\command",
+    if (!writeString(HKEY_CURRENT_USER, L"Software/Classes/CppSekai.Chart/shell/open/command",
             nullptr, command)) {
         return false;
     }
-    if (!writeString(HKEY_CURRENT_USER, L"Software\\Classes\\.sus", nullptr, kProgId)) {
+    if (!writeString(HKEY_CURRENT_USER, L"Software/Classes/.sus", nullptr, kProgId)) {
         return false;
     }
-    std::printf("[shell] .sus -> %ls  (HKCU\\Software\\Classes, 双击即 --sus <文件>)\n", kProgId);
+    std::printf("[shell] .sus -> %ls  (HKCU/Software/Classes, 双击即 --sus <文件>)\n", kProgId);
     std::printf("[shell]   command = %ls\n", command.c_str());
     std::fflush(stdout);
     return true;
@@ -261,14 +261,14 @@ bool disassociateSus()
 {
     // 只在 .sus 现在还指着我们的时候才动它 —— 用户自己改过关联（或者装了别的
     // 谱面工具）就不能替他拆掉。
-    const std::wstring current = readString(L"Software\\Classes\\.sus", nullptr);
+    const std::wstring current = readString(L"Software/Classes/.sus", nullptr);
     if (!current.empty() && current != kProgId) {
         std::printf("[shell] .sus 现在指向 %ls（不是本程序），不动它\n", current.c_str());
         std::fflush(stdout);
         return false;
     }
-    const long removedExt = RegDeleteTreeW(HKEY_CURRENT_USER, L"Software\\Classes\\.sus");
-    const long removedProg = RegDeleteTreeW(HKEY_CURRENT_USER, L"Software\\Classes\\CppSekai.Chart");
+    const long removedExt = RegDeleteTreeW(HKEY_CURRENT_USER, L"Software/Classes/.sus");
+    const long removedProg = RegDeleteTreeW(HKEY_CURRENT_USER, L"Software/Classes/CppSekai.Chart");
     const bool ok = removedExt == ERROR_SUCCESS || removedExt == ERROR_FILE_NOT_FOUND;
     if (ok) {
         // 这两个返回码 0 = ERROR_SUCCESS，"没找到"也是成功（本来就没装）。别把它
@@ -285,7 +285,7 @@ bool disassociateSus()
 
 bool susAssociated()
 {
-    return readString(L"Software\\Classes\\.sus", nullptr) == kProgId;
+    return readString(L"Software/Classes/.sus", nullptr) == kProgId;
 }
 
 bool rebuildJumpList(const std::wstring& exePath,

@@ -2208,7 +2208,7 @@ namespace
             std::string err;
             const GLuint id = gSelectAssetDir.empty()
                 ? 0
-                : renderer.loadUiTexture(gSelectAssetDir + "\\select\\" + name + ".png", err);
+                : renderer.loadUiTexture(gSelectAssetDir + "/select/" + name + ".png", err);
             it = cache.emplace(name, id).first;
         }
         return it->second;
