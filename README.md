@@ -1,56 +1,69 @@
-# CppSekai Linux 移植版
 
-CppSekai 的 Linux 移植版本。
+# CppSekai Linux
 
-原版是 [BSOD-MEMZ/CppSekai](https://github.com/BSOD-MEMZ/CppSekai)——一个为 Windows 触屏设备（如教室希沃白板）设计的 Project SEKAI 风格 SUS 谱面播放器。
-
-本仓库在上游基础上完成 Linux 平台适配，代码保留 AGPL-3.0 许可。
-
-
----
+CppSekai 的 Linux 移植版。原版 [BSOD-MEMZ/CppSekai](https://github.com/BSOD-MEMZ/CppSekai) 是 Windows 触屏用的 Project SEKAI 风格 SUS 谱面播放器。
 
 ## 与原版的差异
 
-| 功能 | 原版 Windows | Linux 移植 |
+| 功能 | 原版 | Linux |
 |---|---|---|
 | 窗口/输入 | Win32 + SDL2 | SDL2 |
-| 渲染 | OpenGL 3.3 core | OpenGL 3.3 core（不变）|
-| 音频 | miniaudio | miniaudio（ALSA/PulseAudio）|
-| 字体 | 注册表查 Windows 字体 | fontconfig 查系统 CJK 字体 |
-| 音乐商店 | Win32 GUI + WinHTTP | GTK3 GUI + libcurl |
-| 媒体集成 | SMTC（Windows 媒体浮层）| 已移除 |
-| Aero 特效 | Win7 Aero | 已移除 |
+| 渲染 | OpenGL 3.3 | 不变 |
+| 音频 | miniaudio | miniaudio (ALSA/Pulse) |
+| 字体 | Windows 注册表 | fontconfig |
+| 音乐商店 | Win32 + WinHTTP | GTK3 + libcurl |
+| SMTC / Aero | 有 | 已移除 |
 | 本地多人 | 命名共享内存 | 暂未实现 |
-| 文件关联 | 注册表 | 
 
----
+## 功能
+
+- SUS 谱面解析，12 轨全音符
+- 判定 / 结算对齐原作
+- 键盘 12 键 / 鼠标左右键（双押）/ 手柄
+- 别名搜索（~1.2 万条）
+- GTK3 谱面下载器
 
 ## 安装
 
-### Arch Linux（AUR）
+### Arch
 
-AUR 目前暂停新包提交，可先手动构建：
+```bash
+git clone https://github.com/arcwolf1/cppSekai-linux
+cd cppSekai-linux
+makepkg -si
+```
 
+### 其他发行版
 
----
+依赖：`sdl2` `gtk3` `libcurl` `fontconfig` OpenGL `cmake` `pkgconf`
 
-## 操作
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+cmake --build build -j$(nproc)
+sudo cmake --install build
+```
 
-### 游戏
+## 运行
 
-| 输入 | 操作 |
-|---|---|
-| 鼠标左键 / 键盘 D F J K | 左侧 4 轨 |
-| 鼠标右键 / 键盘其它 | 右侧 4 轨 |
-| 中间 4 轨 | 键盘 S L 等（可自定义）|
-| 鼠标左右同按 | 双押 |
-| ESC | 暂停 |
-| 手柄 A / B / X / Y | 对应轨道 |
-| 手柄 Start | 暂停 |
+```bash
+cppsekai              # 游戏
+cppsekai-chartdl-gtk  # 谱面下载器 GUI
+cppsekai-chartdl --list tell   # CLI 搜索
+```
 
-完整 12 键映射在「设置 → 演奏 → 按键映射」里。
+资源搜索顺序：`$CPSEKAI_DATA_DIR` → `/usr/share/cppsekai/` → `~/.local/share/cppsekai/` → 可执行文件同目录
 
-### 谱面下载器
+## 谱面
 
-CLI：
+下载器输出到 `charts/`。游戏扫描 `<数据目录>/charts/` 和 `../charts/`。
+
+每个谱面需要：
+- `<id4>_<难度>.sus`
+- `<vocal_asset>.mp3`
+- `<id4>.png`（可选）
+- `<id4>.json`（可选）
+
+## 许可
+
+AGPL-3.0，继承自上游。
 
