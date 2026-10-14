@@ -10,6 +10,9 @@
 #include <X11/Xlib.h>
 #undef None
 #include "platform/win_compat_linux.h"
+#include <unistd.h>
+#include <sys/wait.h>
+#include <csignal>
 
 // Linux: IME 相关是 Windows 专属，Linux 版本用 SDL 自带的 IME 支持。
 struct ImGuiContext;
@@ -3290,6 +3293,39 @@ int main(int argc, char** argv)
             static_cast<unsigned long>(GetLastError()));
         std::fflush(stdout);
         return false;
+#elif defined(__linux__)
+        // 已在运行：不重复启动
+        if (chartDlProcess != nullptr) {
+            return true;
+        }
+        // 查找下载器：优先 PATH，其次系统路径
+        std::string exe;
+        {
+            const char* fixed[] = {
+                "/usr/bin/cppsekai-chartdl-gtk",
+                "/usr/local/bin/cppsekai-chartdl-gtk",
+            };
+            std::error_code ec;
+            for (const char* p : fixed) {
+                if (std::filesystem::is_regular_file(p, ec)) { exe = p; break; }
+            }
+            if (exe.empty()) exe = "cppsekai-chartdl-gtk";  // 走 PATH
+        }
+        const pid_t pid = fork();
+        if (pid < 0) {
+            std::printf("[chartdl] fork failed\n");
+            std::fflush(stdout);
+            return false;
+        }
+        if (pid == 0) {
+            // 子进程：把游戏的数据目录传给下载器
+            execlp(exe.c_str(), exe.c_str(), baseDir.c_str(), nullptr);
+            _exit(127);  // exec 失败
+        }
+        chartDlProcess = reinterpret_cast<void*>(static_cast<intptr_t>(pid));
+        std::printf("[chartdl] launched %s (pid %d)\n", exe.c_str(), pid);
+        std::fflush(stdout);
+        return true;
 #else
         return false;
 #endif
@@ -3313,6 +3349,19 @@ int main(int argc, char** argv)
             static_cast<unsigned long>(code));
         std::fflush(stdout);
         return true;
+#elif defined(__linux__)
+        if (chartDlProcess == nullptr) {
+            return false;
+        }
+        const pid_t pid = static_cast<pid_t>(reinterpret_cast<intptr_t>(chartDlProcess));
+        int status = 0;
+        if (waitpid(pid, &status, WNOHANG) == pid) {
+            chartDlProcess = nullptr;
+            std::printf("[chartdl] exited; re-scanning charts\n");
+            std::fflush(stdout);
+            return true;
+        }
+        return false;
 #else
         return false;
 #endif
