@@ -3463,7 +3463,14 @@ int main(int argc, char** argv)
     // SDL_GetTicks() 同一个基准，所以拿"现在"当锚点、减掉排队时长就能还原按下那一刻。
     // 上限钳到 250 ms：时钟回绕之类的异常值不至于把一次判定甩到天边。
     const auto songTimeAtEvent = [&](Uint32 eventMs) -> double {
-        const double lagSec = static_cast<double>(SDL_GetTicks() - eventMs) / 1000.0;
+        const Uint32 now = SDL_GetTicks();
+        // Linux SDL2 的 event.key.timestamp 有报告恒为某个固定值（不随按键更新），
+        // 那样 (now - eventMs) 会越滚越大、被钳到 0.25，判定永远迟 250ms。
+        // 时间戳异常（0 / 超过 now / 落后 >500ms）时直接用当前时间。
+        if (eventMs == 0 || now < eventMs || (now - eventMs) > 500) {
+            eventMs = now;
+        }
+        const double lagSec = static_cast<double>(now - eventMs) / 1000.0;
         return songClock() - std::clamp(lagSec, 0.0, 0.25);
     };
 
