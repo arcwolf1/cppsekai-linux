@@ -1,6 +1,6 @@
 pkgbase = cppsekai
 	pkgdesc = Project SEKAI style SUS chart player (Linux port)
-	pkgver = 1.0.2
+	pkgver = 1.0.3
 	pkgrel = 1
 	url = https://github.com/arcwolf1/cppSekai-linux
 	arch = x86_64
@@ -11,7 +11,7 @@ pkgbase = cppsekai
 	depends = gtk3
 	depends = curl
 	depends = fontconfig
-	source = cppsekai-1.0.2.tar.gz::https://github.com/arcwolf1/cppSekai-linux/archive/refs/tags/v1.0.2.tar.gz
-	sha256sums = 8440d2592122ea3c66381afd4a2a986f40f5e67b1b36863dd4b0a5c5073888aa
+	source = cppsekai-1.0.3.tar.gz::https://github.com/arcwolf1/cppSekai-linux/archive/refs/tags/v1.0.3.tar.gz
+	sha256sums = 68f5600f079e1605b76a9599618640d2ffa54a3feafebe27ec5258441007a625
 
 pkgname = cppsekai

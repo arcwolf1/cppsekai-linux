@@ -1,0 +1,26 @@
+# Maintainer: Arcwolf <arcwolf@arcwolf.top>
+pkgname=cppsekai
+pkgver=1.0.2
+pkgrel=1
+pkgdesc="Project SEKAI style SUS chart player (Linux port)"
+arch=('x86_64')
+url="https://github.com/arcwolf1/cppSekai-linux"
+license=('AGPL-3.0-only')
+depends=('sdl2' 'gtk3' 'curl' 'fontconfig')
+makedepends=('cmake' 'pkgconf')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('8440d2592122ea3c66381afd4a2a986f40f5e67b1b36863dd4b0a5c5073888aa')
+
+build() {
+    cd "$srcdir/cppsekai-linux-$pkgver"
+    cmake -B build \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr
+    cmake --build build -j$(nproc)
+}
+
+package() {
+    cd "$srcdir/cppsekai-linux-$pkgver"
+    DESTDIR="$pkgdir" cmake --install build --prefix /usr
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
