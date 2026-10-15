@@ -29,6 +29,14 @@ enum {
 
 static void refreshList();
 
+static void onCellToggled(GtkCellRendererToggle*, gchar* pathStr, gpointer) {
+    GtkTreeIter it;
+    if (!gtk_tree_model_get_iter_from_string(GTK_TREE_MODEL(gUi.store), &it, pathStr)) return;
+    gboolean active;
+    gtk_tree_model_get(GTK_TREE_MODEL(gUi.store), &it, COL_CHECK, &active, -1);
+    gtk_list_store_set(gUi.store, &it, COL_CHECK, !active, -1);
+}
+
 static void buildTree() {
     gUi.store = gtk_list_store_new(COL_COUNT,
         G_TYPE_BOOLEAN, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING,
@@ -37,6 +45,7 @@ static void buildTree() {
     gUi.tree = gtk_tree_view_new_with_model(GTK_TREE_MODEL(gUi.store));
 
     GtkCellRenderer* toggle = gtk_cell_renderer_toggle_new();
+    g_signal_connect(toggle, "toggled", G_CALLBACK(onCellToggled), NULL);
     gtk_tree_view_append_column(GTK_TREE_VIEW(gUi.tree),
         gtk_tree_view_column_new_with_attributes("", toggle, "active", COL_CHECK, NULL));
 

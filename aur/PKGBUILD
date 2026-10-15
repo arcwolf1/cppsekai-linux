@@ -1,6 +1,6 @@
 # Maintainer: Arcwolf <arcwolf@arcwolf.top>
 pkgname=cppsekai
-pkgver=1.0.0
+pkgver=1.0.1
 pkgrel=1
 pkgdesc="Project SEKAI style SUS chart player (Linux port)"
 arch=('x86_64')
