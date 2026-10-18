@@ -72,6 +72,39 @@ bash package.sh --no-assets  # 精简包（约 2.7 MB，用户侧跑一次 setup
 | `README.md` / `SETUP.md` / `COPYRIGHT.md` / `CREDITS.md` / `LICENSE` | 说明与许可（**AGPL-3.0-only，发二进制必须附带**） |
 | `charts/` | 空目录 + 说明，谱面放这里或用 chartdl 下载 |
 
+### Linux 的发布（v1.0.4 起）
+
+```bash
+# 0) 确保 build-linux 是从当前源码编出来的
+cd build-linux && make -j8 && cd ..
+
+# 1) 先 cmake --install 到一个 staging 目录（两种包都从它出）
+rm -rf build-linux/pkgroot
+DESTDIR=$PWD/build-linux/pkgroot cmake --install build-linux --prefix /usr
+
+# 2) 通用 tar 包（解压即跑 / install.sh 装系统）
+bash .workbuddy/tools/make_linux_tar.sh build-linux/pkgroot 1.0.4 dist
+
+# 3) Arch 的 .pkg.tar.zst
+bash .workbuddy/tools/make_arch_pkg.sh build-linux/pkgroot 1.0.4 dist
+
+# 4) 发 Release
+gh release create v1.0.4 --title "CppSekai for Linux v1.0.4" \
+    --notes-file dist/release-notes-v1.0.4.md \
+    dist/cppsekai-1.0.4-linux-x86_64.tar.gz dist/cppsekai-1.0.4-1-x86_64.pkg.tar.zst
+```
+
+PKGBUILD 里的 `sha256sums` 是 **v1.0.4 归档的哈希**，所以顺序必须是
+**先打 tag → 下载归档算哈希 → 回填 PKGBUILD/.SRCINFO → 再提交**（tag 本身停在
+哈希之前的那个提交上，这个自引用没法在 tag 内解决；AUR 用的是仓库 HEAD 上的
+PKGBUILD，也就是哈希正确的那份）。
+
+⚠ **本机上 `makepkg` 跑不通**：它拒绝 root 运行，而 `su` / `runuser` / `unshare`
+都被环境拦（setgroups 不允许）；它的下载走 `/dev/fd/63`，解包用 bsdtar（utime 被拦），
+编译阶段 gcc 探测 `-I` 目录还会被安全策略拒成 EPERM。所以 3) 走手工组装
+（`.PKGINFO` + `tar --zstd`，pacman 认，只是没有 `.MTREE`）。**AUR 用户那边
+makepkg 是正常工作的**——这台机器的限制只影响本地。
+
 
 ## 已知的坑（改动前先看 AGENTS.md）
 
