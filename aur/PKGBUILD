@@ -4,12 +4,12 @@ pkgver=1.0.4
 pkgrel=1
 pkgdesc="Project SEKAI style SUS chart player (Linux port)"
 arch=('x86_64')
-url="https://github.com/arcwolf1/cppSekai-linux"
+url="https://github.com/arcwolf1/cppsekai-linux"
 license=('AGPL-3.0-only')
 depends=('sdl2' 'gtk3' 'curl' 'fontconfig')
 makedepends=('cmake' 'pkgconf')
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('PLACEHOLDER')
+sha256sums=('54c4d8d553636d6c8e435f1bcaac507cf6ae7b5303cd93506a4b662b9e9c8781')
 
 build() {
     cd "$srcdir/cppsekai-linux-$pkgver"
