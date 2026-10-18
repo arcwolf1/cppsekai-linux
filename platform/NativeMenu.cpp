@@ -91,7 +91,7 @@ HMENU buildBar()
     AppendMenuW(help, MF_STRING, CmdLicense, L"许可与免责声明(&L)");
     AppendMenuW(help, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(help, MF_STRING, CmdGithub, L"GitHub(&G)");
-    AppendMenuW(help, MF_STRING, CmdXxtsoft, L"访问 xxtsoft(&X)");
+    AppendMenuW(help, MF_STRING, CmdXxtsoft, L"官方网站(&X)");
     AppendMenuW(bar, MF_POPUP, reinterpret_cast<UINT_PTR>(help), L"帮助(&H)");
 
     return bar;

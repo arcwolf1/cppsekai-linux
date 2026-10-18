@@ -13,6 +13,8 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <csignal>
+#include <cerrno>
+#include <fcntl.h>
 
 // Linux: IME 相关是 Windows 专属，Linux 版本用 SDL 自带的 IME 支持。
 struct ImGuiContext;
@@ -3912,7 +3914,60 @@ int main(int argc, char** argv)
 #ifdef _WIN32
         ShellExecuteW(nullptr, L"open", url, nullptr, nullptr, SW_SHOWNORMAL);
 #else
-        (void)url;
+        // Linux 版的 wchar_t 是 UTF-32，而 path_utf8::narrow 只存在于 Windows
+        // 分支，所以这里就地编码。传进来的都是 ASCII 的 URL 字面量，但按
+        // 通用 UTF-8 写，将来换成带中文的地址也不会静默出错。
+        const auto encodeUtf8 = [](const wchar_t* wide) {
+            std::string out;
+            if (wide == nullptr) {
+                return out;
+            }
+            for (const wchar_t* p = wide; *p != L'\0'; ++p) {
+                const unsigned int c = static_cast<unsigned int>(*p);
+                if (c < 0x80u) {
+                    out.push_back(static_cast<char>(c));
+                } else if (c < 0x800u) {
+                    out.push_back(static_cast<char>(0xC0u | (c >> 6)));
+                    out.push_back(static_cast<char>(0x80u | (c & 0x3Fu)));
+                } else if (c < 0x10000u) {
+                    out.push_back(static_cast<char>(0xE0u | (c >> 12)));
+                    out.push_back(static_cast<char>(0x80u | ((c >> 6) & 0x3Fu)));
+                    out.push_back(static_cast<char>(0x80u | (c & 0x3Fu)));
+                } else {
+                    out.push_back(static_cast<char>(0xF0u | (c >> 18)));
+                    out.push_back(static_cast<char>(0x80u | ((c >> 12) & 0x3Fu)));
+                    out.push_back(static_cast<char>(0x80u | ((c >> 6) & 0x3Fu)));
+                    out.push_back(static_cast<char>(0x80u | (c & 0x3Fu)));
+                }
+            }
+            return out;
+        };
+        // 交给 xdg-open（桌面环境默认的浏览器 / URL 处理器）。
+        // 用**双 fork**：中间进程立刻退出并被下面的 waitpid 收掉，真正去 exec
+        // xdg-open 的孙进程变孤儿由 init 领养 —— 这样游戏主进程既不会阻塞在
+        // 浏览器的启动上，也不会攒下僵尸子进程。
+        const std::string target = encodeUtf8(url);
+        const pid_t pid = fork();
+        if (pid < 0) {
+            return;
+        }
+        if (pid == 0) {
+            const pid_t grand = fork();
+            if (grand == 0) {
+                // 丢掉 stdout/stderr：xdg-open 的提示不该混进游戏日志
+                if (int devnull = ::open("/dev/null", O_WRONLY); devnull >= 0) {
+                    ::dup2(devnull, STDOUT_FILENO);
+                    ::dup2(devnull, STDERR_FILENO);
+                    ::close(devnull);
+                }
+                ::execlp("xdg-open", "xdg-open", target.c_str(), nullptr);
+                ::_exit(127);
+            }
+            ::_exit(grand < 0 ? 1 : 0);
+        }
+        int status = 0;
+        while (::waitpid(pid, &status, 0) < 0 && errno == EINTR) {
+        }
 #endif
     };
     // The native picker behind 账户 > 导出 / 导入用户数据. comdlg32 again (the
@@ -5497,11 +5552,13 @@ int main(int argc, char** argv)
                 {
                     const float linkW = (interior - 8.0f * s) * 0.5f;
                     if (ui::capsuleButton("GitHub", ImVec2(linkW, 44.0f * s), true)) {
-                        openUrl(L"https://github.com/BSOD-MEMZ/CppSekai");
+                        openUrl(L"https://github.com/arcwolf1/Cppsekai-linux");
                     }
                     ImGui::SameLine();
-                    if (ui::capsuleButton("访问 xxtsoft", ImVec2(linkW, 44.0f * s), false)) {
-                        openUrl(L"https://xxtsoft.top");
+                    // 标签跟着地址走：以前叫「访问 xxtsoft」是因为它指向 xxtsoft.top，
+                    // 现在指向 www.arcwolf.top/cppsekai 了。
+                    if (ui::capsuleButton("官方网站", ImVec2(linkW, 44.0f * s), false)) {
+                        openUrl(L"https://www.arcwolf.top/cppsekai");
                     }
                 }
                 aboutGap();
@@ -7798,10 +7855,10 @@ int main(int argc, char** argv)
                 eulaPadChoice = -1;
                 break;
             case platform::menu::CmdGithub:
-                openUrl(L"https://github.com/BSOD-MEMZ/CppSekai");
+                openUrl(L"https://github.com/arcwolf1/Cppsekai-linux");
                 break;
             case platform::menu::CmdXxtsoft:
-                openUrl(L"https://xxtsoft.top");
+                openUrl(L"https://www.arcwolf.top/cppsekai");
                 break;
             default:
                 break;

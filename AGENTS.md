@@ -2438,7 +2438,9 @@ UI 在 **设置 → 演奏 → 按键映射**（3 列 × 4 行，点一格再按
   做点什么"（`State::songSelected`）。
 - 视图：窗口模式 / 排序方式 / 分组依据（三组都是单选点）/ 显示帧率 / 显示播放进度条 /
   弱化打击特效。
-- 帮助：关于本软件 / 许可与免责声明 / GitHub / 访问 xxtsoft。
+- 帮助：关于本软件 / 许可与免责声明 / GitHub / 官方网站。
+  （2026-10-18：两条外链换成 `github.com/arcwolf1/Cppsekai-linux` 与
+  `www.arcwolf.top/cppsekai`；关于页那颗按钮的标签同步成「官方网站」。）
 
 开启时 `drawSongSelect` 收到 `nativeMenuBar=true`，顶栏那三个**窗口级**按钮
 （刷新 / 音乐商店 / 设置）**和排序 / 分组两个下拉**都不画（`headerFileButtons` /
