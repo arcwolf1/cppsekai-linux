@@ -5538,7 +5538,11 @@ int main(int argc, char** argv)
                 aboutLine("测试");
                 aboutLine("Shitakara4banme");
                 aboutGap();
-                aboutLine("");
+                // 移植者：这份是 Windows 原版的 Linux 移植，署名排在上游那两组后面。
+                // 上面的「策划 / 开发」别动 —— 上游是 AGPL，署名得留着。
+                aboutLine("Linux 移植");
+                aboutLine("Arcwolf");
+                aboutGap();
                 aboutLine("株洲市南方中学");
                 aboutLine("2026年9月");
                 ImGui::PopFont();
