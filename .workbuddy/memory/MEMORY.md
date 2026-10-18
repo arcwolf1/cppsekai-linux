@@ -81,7 +81,14 @@
   风险优先级：**资格罚 > 平台下架 > 诉讼**；相关关键词在 github/dmca 里 0 条 → 没走 DMCA。
   **「repo 404」不能归因**，别拿别人 repo 的状态当决策依据。
 
+## 项目自己的链接（2026-10-18 起）
+- 关于页两颗按钮 / 帮助菜单：GitHub = `github.com/arcwolf1/Cppsekai-linux`，
+  官方网站 = `www.arcwolf.top/cppsekai`（README 里「原版 BSOD-MEMZ/CppSekai」是上游署名，别动）。
+- Linux 的 `openUrl` = 双 fork + `execlp("xdg-open")`（以前是空实现，点了没反应）。
+  ⚠ `path_utf8::narrow/widen` **只有 Windows 分支**，Linux 上要自己编 UTF-8。
+
 ## 最近工作
+- 10-18：关于页外链改指移植版自己的仓库 / 官网（标签「访问 xxtsoft」→「官方网站」）。
 - 10-06：原生菜单栏 + 「与 Windows 融合」四批（防休眠/拖放/媒体键、窗口位置/标题/关窗确认、
   ~~缩略图按钮~~**当天撤掉**、.sus 关联/Jump List）；第二批修好**菜单 Alt 访问键**（SDL 吞
   `SC_KEYMENU`）+ 打开谱面 / 编辑（删除谱面文件）/ 排序分组子菜单 / 演出能量（0..100，官方表到 10）。
