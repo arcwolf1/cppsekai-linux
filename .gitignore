@@ -61,3 +61,10 @@ downloader/CMakeFiles/
 downloader/cmake_install.cmake
 downloader/Makefile
 downloader/cppsekai-chartdl
+
+# AUR 构建残留（makepkg 的 src/ / pkg/ 与打好的包）。
+# 别提交：aur/src 里是解压出来的源码，套着上一版的 aur/，会一层层变大。
+aur/src/
+aur/pkg/
+aur/*.tar.gz
+aur/*.pkg.tar.zst
